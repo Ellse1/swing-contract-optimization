@@ -4,7 +4,7 @@ from classes.swing_contract_generator import SwingContractGenerator
 
 class MarketOptimizer:
 
-    # Get all the Swing Contract Offers from the generators (do it directly here)
+    #  Get all the Swing Contract Offers from the generators (do it directly here)
     # This is a list of SwingContractGenerator objects
     swing_contract_offers = []
     swing_contract_offer1 = SwingContractGenerator()
