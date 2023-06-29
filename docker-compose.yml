@@ -1,6 +1,6 @@
 version: '3.7'
 services:
   gurobi:
-    image: my-gurobi-app
+    image: gurobi-app
     volumes:
       - ./gurobi.lic:/opt/gurobi/gurobi.lic:ro
