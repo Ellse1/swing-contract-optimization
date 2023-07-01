@@ -20,8 +20,6 @@ class MarketOptimizer:
     ('B', 'C'):  120
     })
 
-
-
     # power_mw_in_step_k = [][]: added as a variable to the swing contract generator class and as a decision variable to the optimization problem
     number_of_swing_contract_offers = 0
     number_of_time_steps_k_in_market = 24
@@ -31,7 +29,6 @@ class MarketOptimizer:
     power_imb_cost_dlar_per_mwh_neg = 90
 
     
-
     def optimize(self):
         print("Start optimization")
 
