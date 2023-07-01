@@ -21,15 +21,7 @@ class MarketOptimizer:
     })
 
 
-    # Variables for the optimization problem: offers
-    # Each variable in one array (this is better for including it into gurobi)
-    # Not each swing contract has its own variables, but all variables of one type are in one array
-    offer_price_dlar = []
-    power_min_mw = []
-    power_max_mw = []
-    ramping_max_mw_up_per_k = []
-    ramping_max_mw_down_per_k = []
-    price_per_mw_h_dlar = []
+
     # power_mw_in_step_k = [][]: added as a variable to the swing contract generator class and as a decision variable to the optimization problem
     number_of_swing_contract_offers = 0
     number_of_time_steps_k_in_market = 24
@@ -51,10 +43,8 @@ class MarketOptimizer:
             # Create random swing contracts
             print("Create random swing contracts")
             self.add_random_swing_contract_offers()
-            # Prepare arrays (all variables of one type in one array, e.g. all prices are in one array)
-            print("Prepare offer arrays")
-            self.prepare_offer_arrays()
 
+            # Create random load profiles
             print("Create random load profiles")
             self.add_random_swing_contract_purchaser()
 
@@ -65,7 +55,6 @@ class MarketOptimizer:
             # Add constraints
             print("Adding constraints")
             self.add_gurobi_constraints(gurobi_model)
-
                    
             # Set objective function
             print("Setting objective function")
@@ -147,16 +136,7 @@ class MarketOptimizer:
         self.swing_contract_offers.append(swing_contract_offer1)
         self.swing_contract_offers.append(swing_contract_offer2)
         self.swing_contract_offers.append(swing_contract_offer3)
-
-    def prepare_offer_arrays(self):
-        for sc in self.swing_contract_offers: 
-            self.offer_price_dlar.append(sc.offer_price_dlar)  
-            self.power_min_mw.append(sc.powermin_mw)
-            self.power_max_mw.append(sc.powermax_mw)
-            self.ramping_max_mw_up_per_k.append(sc.ramping_max_mw_up_per_k)
-            self.ramping_max_mw_down_per_k.append(sc.ramping_max_mw_down_per_k)
-            self.price_per_mw_h_dlar.append(sc.price_per_mw_h_dlar)
-            self.number_of_swing_contract_offers += 1
+        self.number_of_swing_contract_offers = len(self.swing_contract_offers)
 
     def add_random_swing_contract_purchaser(self):
         # Create three sample swing contracts for LoadServingEntities (want to buy electricity for their customers)
