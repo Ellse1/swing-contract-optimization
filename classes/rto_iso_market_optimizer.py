@@ -167,6 +167,7 @@ class MarketOptimizer:
         swing_contract_purchaser2 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 2, number_of_steps_k = self.number_of_time_steps_k_in_market, name = "SW 2")
         swing_contract_purchaser3 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 4, number_of_steps_k = self.number_of_time_steps_k_in_market, name = "SW 3")
 
+        swing_contract_purchaser3.set_load_profile_mw_for_each_k([3, 4, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3])
 
         self.swing_contract_purchaser.append(swing_contract_purchaser1)
         self.swing_contract_purchaser.append(swing_contract_purchaser2)
