@@ -24,19 +24,23 @@ class MarketOptimizer:
     # Variables for the optimization problem: offers
     # Each variable in one array (this is better for including it into gurobi)
     # Not each swing contract has its own variables, but all variables of one type are in one array
-    offer_price_dollar = []
+    offer_price_dlar = []
     power_min_mw = []
     power_max_mw = []
     ramping_max_mw_up_per_k = []
     ramping_max_mw_down_per_k = []
-    price_per_mw_h_dollar = []
+    price_per_mw_h_dlar = []
     # power_mw_in_step_k = [][]: added as a variable to the swing contract generator class and as a decision variable to the optimization problem
     number_of_swing_contract_offers = 0
     number_of_time_steps_k_in_market = 24
 
+    # PowerImbalance for each time step k in K and power imbalance cost
+    power_imb_mw_pos = []
+    power_imb_mw_neg = []
+    power_imb_cost_dlar_per_mwh_pos = 90
+    power_imb_cost_dlar_per_mwh_neg = 90
 
-
-
+    
 
     def optimize(self):
         print("Start optimization")
@@ -53,6 +57,9 @@ class MarketOptimizer:
             print("Prepare offer arrays")
             self.prepare_offer_arrays()
 
+            print("Create random load profiles")
+            self.add_random_swing_contract_purchaser()
+
             # Create variables for the optimization problem
             print("Creating Gurobi variables")
             self.create_gurobi_variables(gurobi_model)
@@ -63,7 +70,7 @@ class MarketOptimizer:
 
                    
             # Set objective function
-            print("Seting objective function")
+            print("Setting objective function")
             self.set_gurobi_objective_function(gurobi_model)
 
             # Optimize model
@@ -92,30 +99,43 @@ class MarketOptimizer:
         # the (to select) power of a generator in a time step k
         self.keys_power_mw_in_step_k = gurobi_model.addVars(self.number_of_swing_contract_offers, self.number_of_time_steps_k_in_market, lb=0, vtype=GRB.CONTINUOUS, name="power_mw_in_step_k")
 
+        # the power imbalance (pos and neg) in a time step k
+        self.keys_power_imb_mw_pos = gurobi_model.addVars(self.number_of_time_steps_k_in_market, lb=0, vtype=GRB.CONTINUOUS, name="keys_power_imb_mw_pos")
+        self.keys_power_imb_mw_neg = gurobi_model.addVars(self.number_of_time_steps_k_in_market, lb=0, vtype=GRB.CONTINUOUS, name="keys_power_imb_mw_neg")
+
 
     # Add constraints for the optimization problem
     def add_gurobi_constraints(self, gurobi_model):    
         # Set the offer prices in the model to the correct offer prices from the swing contract offers
-        # gurobi_model.addConstrs(((self.keys_offer_price_dollar[i] == self.swing_contract_offers[i].offer_price_dollar) for i in range(self.number_of_swing_contract_offers) ), name="offer_price_set" )
+        # gurobi_model.addConstrs(((self.keys_offer_price_dlar[i] == self.swing_contract_offers[i].offer_price_dlar) for i in range(self.number_of_swing_contract_offers) ), name="offer_price_set" )
         
         # Set the power_mw_in_step_k in the model to smaller or equal to powermax_mw from the swing contract offers
         gurobi_model.addConstrs(self.keys_power_mw_in_step_k[i, k] <= self.swing_contract_offers[i].powermax_mw for i in range(self.number_of_swing_contract_offers) for k in range(self.number_of_time_steps_k_in_market))
                 
         # Set the constraint, that in each time step, the sum off all power_mw_in_step_k of all swing contract offers (that are cleared) is at least 4 MW
-        gurobi_model.addConstrs(((sum(self.keys_power_mw_in_step_k[i, k] * self.keys_is_cleared[i] for i in range(self.number_of_swing_contract_offers)) >= 4) for k in range(self.number_of_time_steps_k_in_market) ), name="power_min_at_least_4" )
+        # gurobi_model.addConstrs(((sum(self.keys_power_mw_in_step_k[i, k] * self.keys_is_cleared[i] for i in range(self.number_of_swing_contract_offers)) >= 4) for k in range(self.number_of_time_steps_k_in_market) ), name="power_min_at_least_4" )
 
+        # Choose correct positive and negative power imbalance
+        # positive power imbalance is: (power of step k) - (load profile of step k) ; lower_bound = 0
+        gurobi_model.addConstrs( self.keys_power_imb_mw_pos[k] >= sum((self.keys_power_mw_in_step_k[i, k] * self.keys_is_cleared[i]) for i in range(self.number_of_swing_contract_offers)) - sum((self.swing_contract_purchaser[i].load_profile_mw_in_step_k[k]) for i in range(len(self.swing_contract_purchaser))) for k in range(self.number_of_time_steps_k_in_market))
+        # negative power imbalance is: (load profile of step k) - (power of step k) ; lower_bound = 0
+        gurobi_model.addConstrs( self.keys_power_imb_mw_neg[k] >= sum((self.swing_contract_purchaser[i].load_profile_mw_in_step_k[k]) for i in range(len(self.swing_contract_purchaser))) - sum((self.keys_power_mw_in_step_k[i, k] * self.keys_is_cleared[i]) for i in range(self.number_of_swing_contract_offers)) for k in range(self.number_of_time_steps_k_in_market))
 
     # Set objective function for the optimization problem
     def set_gurobi_objective_function(self, gurobi_model):
-        print("Set the objective function")
         # Set the objective function:
         # Minimize the following:
-        # sum over all offer_price_dollar of cleared swing contracts
-        obj_fun_1 = sum(self.swing_contract_offers[i].offer_price_dollar * self.keys_is_cleared[i] for i in range(self.number_of_swing_contract_offers))
-        # sum over all (power_mw_in_step_k * price_per_mw_h_dollar (because one time step is one hour) of cleared swing contracts)) 
-        obj_fun_2 = sum(self.swing_contract_offers[i].price_per_mw_h_dollar * self.keys_power_mw_in_step_k[i, k] for i in range(self.number_of_swing_contract_offers) for k in range(self.number_of_time_steps_k_in_market))
+        # sum over all offer_price_dlar of cleared swing contracts
+        obj_fun_sum_over_offer_prices = sum(self.swing_contract_offers[i].offer_price_dlar * self.keys_is_cleared[i] for i in range(self.number_of_swing_contract_offers))
+        # sum over all (power_mw_in_step_k * price_per_mw_h_dlar (because one time step is one hour) of cleared swing contracts)) 
+        sum_over_power_costs = sum(self.swing_contract_offers[i].price_per_mw_h_dlar * self.keys_power_mw_in_step_k[i, k] for i in range(self.number_of_swing_contract_offers) for k in range(self.number_of_time_steps_k_in_market))
 
-        obj_fun_complete = obj_fun_1 + obj_fun_2
+        # Set the correct imbalance values for each timespet k
+        sum_over_pos_imb_costs = sum(self.keys_power_imb_mw_pos[k] * self.power_imb_cost_dlar_per_mwh_pos for k in range(self.number_of_time_steps_k_in_market))
+        sum_over_neg_imb_costs = sum(self.keys_power_imb_mw_neg[k] * self.power_imb_cost_dlar_per_mwh_neg for k in range(self.number_of_time_steps_k_in_market))
+
+        # set objective function together
+        obj_fun_complete = obj_fun_sum_over_offer_prices + sum_over_power_costs + sum_over_pos_imb_costs + sum_over_neg_imb_costs
         gurobi_model.setObjective(obj_fun_complete, GRB.MINIMIZE)
 
 
@@ -124,9 +144,9 @@ class MarketOptimizer:
         # Create three sample swing contracts 
         # This is a list of SwingContractGenerator objects
         self.swing_contract_offers = []
-        swing_contract_offer1 = SwingContractGenerator(offer_price_dollar=1000, delivery_location="A", powermin_mw=0, powermax_mw=5, ramping_max_mw_up_per_k=10, ramping_max_mw_down_per_k=10, price_per_mw_h_dollar=80)
-        swing_contract_offer2 = SwingContractGenerator(offer_price_dollar=3, delivery_location="A", powermin_mw=0, powermax_mw=20, ramping_max_mw_up_per_k=10, ramping_max_mw_down_per_k=10, price_per_mw_h_dollar=90)
-        swing_contract_offer3 = SwingContractGenerator(offer_price_dollar=3, delivery_location="A", powermin_mw=0, powermax_mw=15, ramping_max_mw_up_per_k=10, ramping_max_mw_down_per_k=10, price_per_mw_h_dollar=100)
+        swing_contract_offer1 = SwingContractGenerator(offer_price_dlar=1000, delivery_location="A", powermin_mw=0, powermax_mw=5, ramping_max_mw_up_per_k=10, ramping_max_mw_down_per_k=10, price_per_mw_h_dlar=80)
+        swing_contract_offer2 = SwingContractGenerator(offer_price_dlar=200, delivery_location="A", powermin_mw=0, powermax_mw=3, ramping_max_mw_up_per_k=10, ramping_max_mw_down_per_k=10, price_per_mw_h_dlar=90)
+        swing_contract_offer3 = SwingContractGenerator(offer_price_dlar=3, delivery_location="A", powermin_mw=0, powermax_mw=15, ramping_max_mw_up_per_k=10, ramping_max_mw_down_per_k=10, price_per_mw_h_dlar=120)
        
         # add swing contracts to the list of swing contract offers
         self.swing_contract_offers.append(swing_contract_offer1)
@@ -135,12 +155,12 @@ class MarketOptimizer:
 
     def prepare_offer_arrays(self):
         for sc in self.swing_contract_offers: 
-            self.offer_price_dollar.append(sc.offer_price_dollar)  
+            self.offer_price_dlar.append(sc.offer_price_dlar)  
             self.power_min_mw.append(sc.powermin_mw)
             self.power_max_mw.append(sc.powermax_mw)
             self.ramping_max_mw_up_per_k.append(sc.ramping_max_mw_up_per_k)
             self.ramping_max_mw_down_per_k.append(sc.ramping_max_mw_down_per_k)
-            self.price_per_mw_h_dollar.append(sc.price_per_mw_h_dollar)
+            self.price_per_mw_h_dlar.append(sc.price_per_mw_h_dlar)
             self.number_of_swing_contract_offers += 1
 
     def add_random_swing_contract_purchaser(self):
@@ -148,11 +168,14 @@ class MarketOptimizer:
         # This is a list of SwingContractPurchaser objects
         self.swing_contract_purchaser = []
 
-        swing_contract_purchaser1 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 3)
-        swing_contract_purchaser2 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 4)
-        swing_contract_purchaser3 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 1)
+        swing_contract_purchaser1 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 1, number_of_steps_k = self.number_of_time_steps_k_in_market, name="SW 1")
+        swing_contract_purchaser2 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 2, number_of_steps_k = self.number_of_time_steps_k_in_market, name = "SW 2")
+        swing_contract_purchaser3 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 4, number_of_steps_k = self.number_of_time_steps_k_in_market, name = "SW 3")
 
-        self.swing_contract_offers.append(swing_contract_purchaser1)
-        self.swing_contract_offers.append(swing_contract_purchaser2)
-        self.swing_contract_offers.append(swing_contract_purchaser3)
+
+        self.swing_contract_purchaser.append(swing_contract_purchaser1)
+        self.swing_contract_purchaser.append(swing_contract_purchaser2)
+        self.swing_contract_purchaser.append(swing_contract_purchaser3)
+
+
 
