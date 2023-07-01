@@ -34,9 +34,7 @@ class MarketOptimizer:
     number_of_swing_contract_offers = 0
     number_of_time_steps_k_in_market = 24
 
-    # PowerImbalance for each time step k in K and power imbalance cost
-    power_imb_mw_pos = []
-    power_imb_mw_neg = []
+    # cost for PowerImbalance for each time step k in K
     power_imb_cost_dlar_per_mwh_pos = 90
     power_imb_cost_dlar_per_mwh_neg = 90
 
@@ -106,9 +104,6 @@ class MarketOptimizer:
 
     # Add constraints for the optimization problem
     def add_gurobi_constraints(self, gurobi_model):    
-        # Set the offer prices in the model to the correct offer prices from the swing contract offers
-        # gurobi_model.addConstrs(((self.keys_offer_price_dlar[i] == self.swing_contract_offers[i].offer_price_dlar) for i in range(self.number_of_swing_contract_offers) ), name="offer_price_set" )
-        
         # Set the power_mw_in_step_k in the model to smaller or equal to powermax_mw from the swing contract offers
         gurobi_model.addConstrs(self.keys_power_mw_in_step_k[i, k] <= self.swing_contract_offers[i].powermax_mw for i in range(self.number_of_swing_contract_offers) for k in range(self.number_of_time_steps_k_in_market))
                 
