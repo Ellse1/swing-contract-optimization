@@ -52,18 +52,29 @@ class SwingContractGenerator:
     # power_mw_in_step_k = []
             
             
-            
-            
-            
+    # the nondecreasing power price curve of the generator
+    # the more power you want, the more you need to pay per kwh because of the more inefficient generators that need to be used
+    # The power between the minimum and maximum power is discretized into 10 steps.
+    # power_price_curve = []  
+    powerprice_discretization_steps = 10         
+    # the power usages of the power, discretized by the powerprice_discretization_steps 
+    # for example a generator could use 2 MW of the 12 MW power it can to generate.
+    # Then the variable would look like [1, 0.666, 0, 0, 0, 0, 0, 0, 0, 0]
+    # 1 * 1.2 + 0.6666 * 1.2 = 2   
+    # power_usages_of_power_price_curve = []           
             
 
 
 
-    def __init__(self, offer_price_dlar, delivery_location, powermin_mw, powermax_mw, ramping_max_mw_up_per_k, ramping_max_mw_down_per_k, price_per_mw_h_dlar):
+    def __init__(self, offer_price_dlar, delivery_location, powermin_mw, powermax_mw, ramping_max_mw_up_per_k, ramping_max_mw_down_per_k, power_price_c):
         
         #declare variables here, because then they are instance variables and not class variables
+        #find description of the variables above in the comments
         self.is_cleared = False
         self.power_mw_in_step_k = []
+        self.power_price_curve = []
+        self.power_usages_of_poser_price_curve = []
+        self.power_usages_of_power_price_curve = [] 
             
         self.offer_price_dlar = offer_price_dlar
         self.delivery_location = delivery_location
@@ -71,4 +82,10 @@ class SwingContractGenerator:
         self.powermax_mw = powermax_mw
         self.ramping_max_mw_up_per_k = ramping_max_mw_up_per_k
         self.ramping_max_mw_down_per_k = ramping_max_mw_down_per_k
-        self.price_per_mw_h_dlar = price_per_mw_h_dlar
+
+        # check for price curve beeing nondecreasing list
+        for i in range(len(power_price_c) - 1):
+            if power_price_c[i] > power_price_c[i + 1]:
+                raise Exception("The power price curve is not nondecreasing. The power price curve should be a nondecreasing list. The more power you want, the more you need to pay per kwh because of the more inefficient generators that need to be used")
+        # set the power price curve
+        self.power_price_curve = power_price_c
