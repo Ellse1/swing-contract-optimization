@@ -8,23 +8,15 @@ class MarketOptimizer:
 
     # This example formulates and solves the model for the RTO-ISO market optimization problem:
     # In the very first attemp, a swing contract market should be designed for a Market M(T)  with T  having 24 k in K (24 hours for day T)
-    # Price swing for the reserve offers should be included (price dependent on dispatch point) but the price function should be linear first. 
+    # Price swing for the reserve offers should be included (price dependent on dispatch point), for 10 different dispatch points (each power step of same width) a price is beeing set
     # No price dependent reserve bids should be included first
-
-    # The Nodes that should be included in the Flow Model
-    nodes = ['A', 'B', 'C']
-    # In arcs a set of the arcs is defined ({('A', 'B'), ('A', 'C'), ('B', 'C')}). In capacity the capacity of the arcs is defined
-    arcs, capacity = gp.multidict({
-    ('A', 'B'):   100,
-    ('A', 'C'):  80,
-    ('B', 'C'):  120
-    })
 
     # power_mw_in_step_k = [][]: added as a variable to the swing contract generator class and as a decision variable to the optimization problem
     number_of_swing_contract_offers = 0
     number_of_time_steps_k_in_market = 24
 
     # swing contract generator powerprice_curve discretzation in 10 steps
+    # if a more granular discretization is needed, the number of steps can be increased but then also the creation of the swing contract generator powerprice_curve needs to be changed
     number_of_powerprice_steps = 10
 
     # cost for PowerImbalance for each time step k in K
@@ -167,7 +159,7 @@ class MarketOptimizer:
         self.swing_contract_purchaser = []
 
         swing_contract_purchaser1 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 4, number_of_steps_k = self.number_of_time_steps_k_in_market, name="SW 1")
-        swing_contract_purchaser2 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 2, number_of_steps_k = self.number_of_time_steps_k_in_market, name = "SW 2")
+        swing_contract_purchaser2 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 8, number_of_steps_k = self.number_of_time_steps_k_in_market, name = "SW 2")
         # swing_contract_purchaser3 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 4, number_of_steps_k = self.number_of_time_steps_k_in_market, name = "SW 3")
 
         # swing_contract_purchaser3.set_load_profile_mw_for_each_k([3, 4, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3])
