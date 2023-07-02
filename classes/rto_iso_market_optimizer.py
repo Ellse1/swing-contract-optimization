@@ -143,8 +143,8 @@ class MarketOptimizer:
         # Create three sample swing contracts 
         # This is a list of SwingContractGenerator objects
         self.swing_contract_offers = []
-        swing_contract_offer1 = SwingContractGenerator(offer_price_dlar=100, delivery_location="A", powermin_mw=0, powermax_mw=10, ramping_max_mw_up_per_k=10, ramping_max_mw_down_per_k=10, power_price_c=[80, 80.5, 81, 82, 83, 84, 85, 86, 87, 130])
-        swing_contract_offer2 = SwingContractGenerator(offer_price_dlar=100, delivery_location="A", powermin_mw=0, powermax_mw=10, ramping_max_mw_up_per_k=10, ramping_max_mw_down_per_k=10, power_price_c=[80, 80.5, 81.5, 82, 83, 84, 85, 86, 87, 130])
+        swing_contract_offer1 = SwingContractGenerator(offer_price_dlar=100, delivery_location="A", powermin_mw=0, powermax_mw=10, ramping_max_mw_up_per_k=10, ramping_max_mw_down_per_k=10, power_price_c=[80, 80.5, 81, 82, 83, 84, 84.5, 86, 87, 130])
+        swing_contract_offer2 = SwingContractGenerator(offer_price_dlar=100, delivery_location="A", powermin_mw=0, powermax_mw=10, ramping_max_mw_up_per_k=10, ramping_max_mw_down_per_k=10, power_price_c=[80, 80.5, 81.5, 82, 83, 85, 85.5, 86, 87, 130])
         swing_contract_offer3 = SwingContractGenerator(offer_price_dlar=100, delivery_location="A", powermin_mw=0, powermax_mw=15, ramping_max_mw_up_per_k=10, ramping_max_mw_down_per_k=10, power_price_c=[100, 101, 102, 103, 104, 105, 106, 107, 108, 130])
 
         # add swing contracts to the list of swing contract offers
@@ -158,7 +158,7 @@ class MarketOptimizer:
         # This is a list of SwingContractPurchaser objects
         self.swing_contract_purchaser = []
 
-        swing_contract_purchaser1 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 4, number_of_steps_k = self.number_of_time_steps_k_in_market, name="SW 1")
+        swing_contract_purchaser1 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 4.5, number_of_steps_k = self.number_of_time_steps_k_in_market, name="SW 1")
         swing_contract_purchaser2 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 8, number_of_steps_k = self.number_of_time_steps_k_in_market, name = "SW 2")
         # swing_contract_purchaser3 = SwingContractPurchaser(load_profile_mw_in_every_step_k = 4, number_of_steps_k = self.number_of_time_steps_k_in_market, name = "SW 3")
 
